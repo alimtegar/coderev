@@ -1,5 +1,9 @@
+__pycache__/
 .DS_Store
 secrets.json
 alpaca_seed_tasks.jsonl
 note.txt
 test.md
+test.ipynb
+test_openai.ipynb
+regen.json
