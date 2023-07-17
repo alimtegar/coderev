@@ -50,14 +50,15 @@ def post_process_gpt3_response(num_prompt_instructions, response):
     for idx, inst in enumerate(raw_instructions):
         # if the decoding stops due to length, the last example is likely truncated so we discard it
         if idx == len(raw_instructions) - 1 and response["finish_reason"] == "length":
-            print('raw_instructions >>\n', raw_instructions)
-            print('Skipping due to condition #1.')
+            print('Skipping inst because it is likely truncated.')
+            print('inst >>\n', inst)
             continue
         idx += num_prompt_instructions + 1
         splitted_data = re.split(f"{idx}\.\s+(Instruction|Input|Output):", inst)
+        # the splitted_data should have length of 7: ['', 'Instruction', {instruction}, 'Input', {input}, 'Output', {output}]
         if len(splitted_data) != 7:
-            print('raw_instructions >>\n', raw_instructions)
-            print('Skipping due to condition #2.')
+            print('Skipping inst because splitted_data length is not 7.')
+            print('inst >>\n', inst)
             continue
         else:
             inst = splitted_data[2].strip()
@@ -66,8 +67,8 @@ def post_process_gpt3_response(num_prompt_instructions, response):
             output = splitted_data[6].strip()
         # filter out too short or too long instructions
         if len(inst.split()) <= 3 or len(inst.split()) > 150:
-            print('raw_instructions >>\n', raw_instructions)
-            print('Skipping due to condition #3.')
+            print('Skipping inst because it is too short or too long.')
+            print('inst >>\n', inst)
             continue
         # filter based on keywords that are not suitable for language models.
         blacklist = [
@@ -77,6 +78,7 @@ def post_process_gpt3_response(num_prompt_instructions, response):
             "graphs",
             "picture",
             "pictures",
+            # "file",
             "files",
             "map",
             "maps",
@@ -91,26 +93,26 @@ def post_process_gpt3_response(num_prompt_instructions, response):
         ]
         blacklist += []
         if any(find_word_in_string(word, inst) for word in blacklist):
-            print('raw_instructions >>\n', raw_instructions)
-            print('Skipping due to condition #4.')
+            print('Skipping inst because it contains blacklisted words.')
+            print('inst >>\n', inst)
             continue
         # We found that the model tends to add "write a program" to some existing instructions, which lead to a lot of such instructions.
         # And it's a bit comfusing whether the model need to write a program or directly output the result.
         # Here we filter them out.
         # Note this is not a comprehensive filtering for all programming instructions.
         if inst.startswith("Write a program"):
-            print('raw_instructions >>\n', raw_instructions)
-            print('Skipping due to condition #5.')
+            print('Skipping inst because it starts with "Write a program".')
+            print('inst >>\n', inst)
             continue
         # filter those starting with punctuation
         if inst[0] in string.punctuation:
-            print('raw_instructions >>\n', raw_instructions)
-            print('Skipping due to condition #6.')
+            print('Skipping inst because it starts with punctuation.')
+            print('inst >>\n', inst)
             continue
         # filter those starting with non-english character
         if not inst[0].isascii():
-            print('raw_instructions >>\n', raw_instructions)
-            print('Skipping due to condition #7.')
+            print('Skipping inst because it starts with non-english character.')
+            print('inst >>\n', inst)
             continue
         instructions.append({"instruction": inst, "input": input, "output": output})
     return instructions
